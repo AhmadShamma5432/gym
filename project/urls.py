@@ -20,8 +20,8 @@ from project import settings
 import debug_toolbar
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/store',include('store.urls')),
-    path('api/programs',include('programs.urls')),
+    path('api/store/',include('store.urls')),
+    path('api/programs/',include('programs.urls')),
     path('auth/',include('core.urls')),
 ]
 
