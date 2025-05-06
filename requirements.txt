@@ -1,0 +1,7 @@
+django
+djangorestframework
+django-filter
+mysqlclient
+django-debug-toolbar
+django-autocomplete-light
+djoser
