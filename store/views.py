@@ -59,7 +59,7 @@ class RatingViewSet(viewsets.ModelViewSet):
     serializer_class = RatingSerializer
 
     def get_queryset(self):
-        return Rating.objects.select_related('product', 'user').filter(product__id = self.kwargs['product_pk'])
+        return Rating.objects.select_related('product', 'user').filter(product__id = self.kwargs['product_pk'],user=self.request.user)
 
     def get_serializer_class(self):
         if self.request.method in ['PATCH','PUT']:

@@ -1,18 +1,21 @@
 from django.db import models
 from project.settings import AUTH_USER_MODEL
 
-class Day(models.Model):
-    name = models.CharField(max_length=255, unique=True)
+DAY_CHOICES = [
+    ('MON', 'Monday'),
+    ('TUE', 'Tuesday'),
+    ('WED', 'Wednesday'),
+    ('THU', 'Thursday'),
+    ('FRI', 'Friday'),
+    ('SAT', 'Saturday'),
+    ('SUN', 'Sunday'),
+]
 
-    def __str__(self):
-        return self.name
 
 class Exercise(models.Model):
-    user = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE)
+    coach = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     description = models.TextField()
-    sets = models.PositiveSmallIntegerField()
-    reps = models.CharField(max_length=255)
     image = models.ImageField(upload_to='exercises/images/', blank=True, null=True)
     video = models.FileField(upload_to='exercises/videos/', blank=True, null=True)
 
@@ -28,24 +31,14 @@ class Plan(models.Model):
     user = models.ForeignKey(AUTH_USER_MODEL,on_delete=models.CASCADE)
     def __str__(self):
         return self.name
-
-class PlanDay(models.Model):
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='plan_days')
-    day = models.ForeignKey(Day, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ('plan', 'day')
-
-    def __str__(self):
-        return f"{self.plan} - {self.day}"
-
-
-class PlanDayExercise(models.Model):
-    plan_day = models.ForeignKey(PlanDay, on_delete=models.CASCADE, related_name='plan_exercises')
-    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
+    
+class ExerciseDetail(models.Model):
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='details')
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercise_detail')
+    week = models.PositiveSmallIntegerField()
+    day = models.CharField(max_length=3, choices=DAY_CHOICES)
+    sets = models.PositiveSmallIntegerField()
+    reps = models.CharField(max_length=255)
 
     class Meta:
-        unique_together = ('plan_day', 'exercise')
-
-    def __str__(self):
-        return f"{self.plan_day} - {self.exercise}"
+        unique_together = ('plan', 'exercise', 'week', 'day')
