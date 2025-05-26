@@ -105,8 +105,12 @@ class ProductSerializer(serializers.ModelSerializer):
             "is_offered",
             "old_price",
             "stock",
-            "why_should_i_buy_it",
-            "how_should_i_take_it",
+            "why_should_i_buy_it_en",
+            "why_should_i_buy_it_ar",
+            
+            "how_should_i_take_it_en",
+            "how_should_i_take_it_ar",
+            
             "rating_counts",
             "product_comments",
             "sizes",
