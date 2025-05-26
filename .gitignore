@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 *.so
 media
+.env
 # Distribution / packaging
 migrations
 .Python

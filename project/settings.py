@@ -45,7 +45,8 @@ INSTALLED_APPS = [
     'dal',
     'dal_select2',
     'djoser',
-    'programs'
+    'programs',
+    'payment'
 ]
 
 MIDDLEWARE = [

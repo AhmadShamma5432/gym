@@ -1,6 +1,5 @@
 from .models import *
 from django.contrib import admin
-from django.utils.html import format_html
 
 
 @admin.register(MainCategory)
@@ -51,40 +50,40 @@ class SizeAdmin(admin.ModelAdmin):
 class ColorAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
+
+class SizeInline(admin.TabularInline):
+    model = Product.sizes.through
+    extra = 1
+
+    def get_formset(self, request, obj=None, **kwargs):
+        # Cache size queryset once
+        if not hasattr(request, '_size_queryset_cache'):
+            request._size_queryset_cache = Size.objects.order_by('name')
+
+        return super().get_formset(request, obj, **kwargs)
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "size":
+            kwargs['queryset'] = request._size_queryset_cache
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+        
+class ColorInline(admin.TabularInline):
+    model = Product.colors.through
+    extra = 1 
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('color','product')
     
 
-@admin.register(ProductImage)
-class ProductImageAdmin(admin.ModelAdmin):
-    list_display = ('product', 'image_preview', 'is_main')
-    list_filter = ('product', 'is_main')
-    search_fields = ('product__name_en', 'product__name_ar')
-
-    def image_preview(self, obj):
-        if obj.image:
-            return format_html('<img src="{}" width="50" height="50" />', obj.image.url)
-        return "-"
-    image_preview.short_description = "Preview"
-
-
-class ProductImageInline(admin.TabularInline):
+class ImageInline(admin.TabularInline):
     model = ProductImage
     extra = 1
-    fields = ('image', 'is_main')
-    readonly_fields = ()
-    can_delete = True
 
-class ProductSizeInline(admin.TabularInline):
-    model = Product.sizes.through  # Use the auto-generated ManyToMany table
-    extra = 1
-    verbose_name = "Size"
-    verbose_name_plural = "Sizes"
-
-class ProductColorInline(admin.TabularInline):
-    model = Product.colors.through  # Same here
-    extra = 1
-    verbose_name = "Color"
-    verbose_name_plural = "Colors"
-
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        return qs.select_related('product')
+    
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     """
@@ -94,17 +93,11 @@ class ProductAdmin(admin.ModelAdmin):
 
     search_fields = ('name_en', 'name_ar', 'main_category__name_en', 'sub_category__name_en', 'brand__name_en')
 
-    list_filter = (
-        'main_category__name_en',
-        'sub_category__name_en',
-        'brand__name_en',
-        'price'
-    )
+    exclude = ['colors','sizes']
 
     inlines = [
-        ProductImageInline,
-        ProductSizeInline,
-        ProductColorInline,
+        ImageInline,
+        SizeInline,
     ]
 
     autocomplete_fields = ('sub_category', 'brand')
@@ -113,7 +106,7 @@ class ProductAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related(
             'main_category', 'sub_category', 'brand'
         ).prefetch_related(
+            'images',
             'sizes',
-            'colors',
-            'images'
-        )
+            'colors'
+        ).distinct()

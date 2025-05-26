@@ -28,4 +28,13 @@ class ExerciseViewSet(viewsets.ModelViewSet):
 class PlanViewSet(viewsets.ModelViewSet):
     queryset = Plan.objects.all()
     serializer_class = PlanSerializer
-    permission_classes = [IsCoachOrStaff]
+    # permission_classes = [IsCoachOrStaff]
+
+    def get_serializer_context(self):
+        try: plan_id = self.kwargs['pk']
+        except: plan_id = None
+        return {'user': self.request.user,
+                'plan_id': plan_id
+                }
+
+                
