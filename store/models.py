@@ -95,7 +95,7 @@ class Product(models.Model):
     sizes = models.ManyToManyField(Size, related_name="product_sizes", blank=True)
     colors = models.ManyToManyField(Color, related_name="product_colors", blank=True)
 
-    is_active = models.BooleanField()
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.name_en} ({self.name_ar})"

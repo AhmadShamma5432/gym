@@ -89,7 +89,7 @@ class ProductAdmin(admin.ModelAdmin):
     """
     Optimized admin class for the Product model.
     """
-    list_display = ('id', 'name_en', 'name_ar', 'main_category', 'sub_category', 'brand', 'price')
+    list_display = ('id', 'name_en', 'name_ar', 'main_category', 'sub_category', 'brand', 'price','is_active')
 
     search_fields = ('name_en', 'name_ar', 'main_category__name_en', 'sub_category__name_en', 'brand__name_en')
 
