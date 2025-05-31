@@ -9,6 +9,7 @@ from django.db.models import Case, Count, IntegerField, Value, When
 from .serializers import *
 from rest_framework.mixins import *
 from rest_framework.decorators import action
+from django.db.models import Prefetch
 
 
 class MainCategoryViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
@@ -43,14 +44,20 @@ class ProductViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
     serializer_class = ProductSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = ProductFilter
-    search_fields = ["name_en", "name_ar"]  # Fields to search by
+    search_fields = ["name_en", "name_ar"] 
 
     def get_queryset(self):
+        rating_prefetch = Prefetch(
+            'ratings',
+            queryset = Rating.objects.select_related("product", "user").filter(user=self.request.user),
+            to_attr = 'product_rate'
+        )
         return (
             Product.objects.prefetch_related(
-                "product_comments__user", "sizes", "colors", "images"
+                "product_comments__user", "sizes", "colors", "images",rating_prefetch
             )
             .select_related("main_category", "sub_category", "brand")
+            .filter(is_active=True)
             .annotate(
                 rating_1=Count(
                     Case(
@@ -84,12 +91,15 @@ class ProductViewSet(GenericViewSet, ListModelMixin, RetrieveModelMixin):
                 ),
             )
         )
+    # def get_serializer_context(self):
+    #     return {"request": self.request}
 
 
 class RatingViewSet(viewsets.ModelViewSet):
     serializer_class = RatingSerializer
 
     def get_queryset(self):
+
         return Rating.objects.select_related("product", "user").filter(
             product__id=self.kwargs["product_pk"], user=self.request.user
         )
@@ -167,6 +177,7 @@ class OrderView(ListModelMixin, RetrieveModelMixin, CreateModelMixin, GenericVie
                 "items__product__sub_category",
             )
             .select_related("user")
+            .order_by('-id')
         )
 
     def get_serializer_context(self):

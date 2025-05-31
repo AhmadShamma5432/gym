@@ -93,11 +93,11 @@ class ProductAdmin(admin.ModelAdmin):
 
     search_fields = ('name_en', 'name_ar', 'main_category__name_en', 'sub_category__name_en', 'brand__name_en')
 
-    exclude = ['colors','sizes']
+    # exclude = ['colors','sizes']
 
     inlines = [
         ImageInline,
-        SizeInline,
+        # SizeInline,
     ]
 
     autocomplete_fields = ('sub_category', 'brand')

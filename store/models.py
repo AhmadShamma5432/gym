@@ -95,6 +95,8 @@ class Product(models.Model):
     sizes = models.ManyToManyField(Size, related_name="product_sizes", blank=True)
     colors = models.ManyToManyField(Color, related_name="product_colors", blank=True)
 
+    is_active = models.BooleanField()
+
     def __str__(self):
         return f"{self.name_en} ({self.name_ar})"
 
@@ -128,6 +130,7 @@ class Rating(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         help_text="Rating value must be between 1 and 5.",
     )
+    comment = models.TextField(default='no comment')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

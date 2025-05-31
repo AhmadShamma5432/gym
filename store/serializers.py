@@ -79,13 +79,26 @@ class ProductImageSerializer(serializers.ModelSerializer):
         model = ProductImage
         fields = ["id", "image", "is_main"]
 
+class RatingSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Rating
+        fields = ["id", "user", "value","comment", "created_at"]
+
+    def create(self, validated_data):
+        product_id = self.context["product_id"]
+        user_id = self.context["user_id"]
+        return Rating.objects.create(
+            **validated_data, user_id=user_id, product_id=product_id
+        )
 
 class ProductSerializer(serializers.ModelSerializer):
     rating_counts = serializers.SerializerMethodField()
     sizes = serializers.SerializerMethodField()
     colors = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
-    product_comments = CommentSerializer(many=True, read_only=True)
+    product_rate = serializers.SerializerMethodField()
     main_category = MainCategorySerializer(read_only=True)
     sub_category = SubCategorySerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
@@ -112,7 +125,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "how_should_i_take_it_ar",
             
             "rating_counts",
-            "product_comments",
+            "product_rate",
             "sizes",
             "colors",
             "images",
@@ -130,6 +143,13 @@ class ProductSerializer(serializers.ModelSerializer):
             request.build_absolute_uri(image.image.url) for image in obj.images.all()
         ]
 
+    def get_product_rate(self,obj):
+        print(obj.product_rate)
+        if hasattr(obj, 'product_rate') and obj.product_rate:
+            return RatingSerializer(obj.product_rate[0]).data  # or serialize the whole object
+            return RatingSerializer(obj.product_rate)
+        return None
+
     def get_rating_counts(self, obj):
         return {
             "1": getattr(obj, "rating_1", 0),
@@ -140,25 +160,10 @@ class ProductSerializer(serializers.ModelSerializer):
         }
 
 
-class RatingSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = Rating
-        fields = ["id", "user", "value", "created_at"]
-
-    def create(self, validated_data):
-        product_id = self.context["product_id"]
-        user_id = self.context["user_id"]
-        return Rating.objects.create(
-            **validated_data, user_id=user_id, product_id=product_id
-        )
-
-
 class UpdateRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rating
-        fields = ["value"]
+        fields = ["value","comment"]
 
 
 class UpdateCommentSerializer(serializers.ModelSerializer):
@@ -254,7 +259,10 @@ class OrderItemProductSerializer(serializers.ModelSerializer):
 class OrderItemSerializer(serializers.ModelSerializer):
     product = serializers.SerializerMethodField()
     product_id = serializers.IntegerField(write_only=True)
-    total_product_price = serializers.FloatField()
+    total_product_price = serializers.CharField(max_length=100)
+    color = serializers.CharField(required=False)
+    size = serializers.CharField(required=False)
+    
 
     class Meta:
         model = OrderItem
@@ -283,7 +291,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     user = UserSerializer(read_only=True)
-    total_products_price = serializers.FloatField()
+    total_products_price = serializers.CharField(max_length=100)
 
     class Meta:
         model = Order
@@ -303,8 +311,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         with transaction.atomic():
-            print("HERE")
-            user_id = self.context["user_id"]  # assuming request is passed in context
+            user_id = self.context["user_id"] 
             items_data = validated_data.pop("items")
 
             order = Order.objects.create(user_id=user_id, **validated_data)
