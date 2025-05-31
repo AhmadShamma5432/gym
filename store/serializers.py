@@ -118,6 +118,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "is_offered",
             "old_price",
             "stock",
+            'is_active'
             "why_should_i_buy_it_en",
             "why_should_i_buy_it_ar",
             
