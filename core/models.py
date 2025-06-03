@@ -25,7 +25,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     ]
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='PLAYER')
 
-    username = models.CharField(max_length=255,unique=True,default='Unkown')
+    username = models.CharField(max_length=255,unique=True)
     phone = models.CharField(unique=True,max_length=100)
 
     is_active = models.BooleanField(default=True)
