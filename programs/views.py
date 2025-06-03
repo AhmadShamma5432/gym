@@ -17,14 +17,14 @@ from .permissions import *
 
 class ExerciseViewSet(viewsets.ModelViewSet):
     serializer_class = ExerciseSerializer
-    permission_classes = [IsCoachOrStaff]
+    # permission_classes = [IsCoachOrStaff]
 
     def get_queryset(self):
         return Exercise.objects.select_related('owner')\
-                               .prefetch_related('exercise_detail').filter(coach=self.request.user)
+                               .prefetch_related('exercise_detail').filter(owner=self.request.user)
     
     def get_serializer_context(self):
-        return {"coach": self.request.user}
+        return {"owner": self.request.user}
     
 class PlanViewSet(viewsets.ModelViewSet):
     
@@ -61,3 +61,12 @@ class PlanRequestView(viewsets.ModelViewSet):
     
     def get_serializer_context(self):
         return {"user": self.request.user}
+
+class SportView(viewsets.ModelViewSet):
+    queryset = Sport.objects.all()
+    serializer_class = SportSerializer
+
+class MuscleView(viewsets.ModelViewSet):
+    queryset = Muscle.objects.all()
+    serializer_class = MuscleSerializer
+

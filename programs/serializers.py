@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from core.serializers import UserSerializer
 from core.models import User
-from .models import Exercise, Plan, ExerciseDetail,Sport,PlanSubscription,PlanRequest
+from .models import Exercise, Plan, ExerciseDetail,Sport,PlanSubscription,PlanRequest,Muscle,ExerciseMuscle
 from django.db import transaction
 
 class SportSerializer(serializers.ModelSerializer):
@@ -12,16 +12,24 @@ class SportSerializer(serializers.ModelSerializer):
             'id','name_en','name_ar'
         ]
 
+class MuscleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Muscle
+        fields = [
+            'id','name_en','name_ar'
+        ]
+
 
 class ExerciseSerializer(serializers.ModelSerializer):
     targeted_muscles_en = serializers.SerializerMethodField()
     targeted_muscles_ar = serializers.SerializerMethodField()
-
+    
+    muscles = serializers.PrimaryKeyRelatedField(queryset=Muscle.objects.all(), many=True, write_only=True)
     class Meta:
         model = Exercise
         fields = [
-            'id', 'name_en', 'name_ar','description_en', 'description_ar','time',
-            'image', 'video', 'targeted_muscles_en','targeted_muscles_ar','how_to_play'
+            'id', 'name_en', 'name_ar','description_en', 'description_ar','time','muscles',
+            'image', 'video', 'targeted_muscles_en','targeted_muscles_ar','how_to_play_en','how_to_play_ar'
         ]
 
     def get_targeted_muscles_en(self, obj):
@@ -31,10 +39,44 @@ class ExerciseSerializer(serializers.ModelSerializer):
     
 
     def create(self, validated_data):
-        coach = self.context['coach']
-        sport = validated_data.pop('sport')
-        print(sport)
-        return Exercise.objects.create(sport=sport,coach=coach, **validated_data)
+        with transaction.atomic():
+            owner = self.context['owner']
+            muscles = validated_data.pop('muscles')  # list of Muscle instances
+
+            exercise = Exercise.objects.create(owner=owner, **validated_data)
+
+            # Create ExerciseMuscle entries
+            exercise_muscles = [
+                ExerciseMuscle(exercise=exercise, muscle=muscle)
+                for muscle in muscles
+            ]
+
+            ExerciseMuscle.objects.bulk_create(exercise_muscles)
+
+            return exercise
+
+    def update(self, instance, validated_data):
+        with transaction.atomic():
+            muscles = validated_data.pop('muscles', None)
+
+            # Update other fields of the exercise
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+            instance.save()
+
+            if muscles is not None:
+                # Delete existing ExerciseMuscle relationships
+                ExerciseMuscle.objects.filter(exercise=instance).delete()
+
+                # Bulk create new ExerciseMuscle relationships
+                exercise_muscles = [
+                    ExerciseMuscle(exercise=instance, muscle=muscle)
+                    for muscle in muscles
+                ]
+                ExerciseMuscle.objects.bulk_create(exercise_muscles)
+
+            return instance
+
 
 class ExerciseDetailSerializer(serializers.ModelSerializer):
     exercise = ExerciseSerializer(read_only=True)

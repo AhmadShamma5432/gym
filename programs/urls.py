@@ -8,6 +8,10 @@ router.register(r'exercises', ExerciseViewSet, basename='exercise')
 router.register(r'plans', PlanViewSet, basename='plans')
 router.register(r'plan_subscriptions', PlanSubscriptionView, basename='plan_subscription')
 router.register(r'plan_request', PlanRequestView, basename='plan_request')
+router.register(r'sport', SportView, basename='sport')
+router.register(r'muscle', MuscleView, basename='muscle')
+
+
 
 
 

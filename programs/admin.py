@@ -36,7 +36,7 @@ class ExerciseMuscleInline(admin.TabularInline):
 # --------------------------
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ('name_en', 'name_ar', 'owner', 'time')
+    list_display = ('id','name_en', 'name_ar', 'owner', 'time')
     search_fields = ('name_en', 'name_ar', 'owner__username')
     list_filter = ('owner',)
     inlines = [ExerciseMuscleInline]

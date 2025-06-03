@@ -22,12 +22,13 @@ class Sport(models.Model):
         return self.name_en
 class Exercise(models.Model):
     owner = models.ForeignKey(AUTH_USER_MODEL, on_delete=models.CASCADE)
-    name_en = models.CharField(max_length=100, unique=True)
-    name_ar = models.CharField(max_length=100, unique=True)
+    name_en = models.CharField(max_length=100)
+    name_ar = models.CharField(max_length=100)
     
     description_en = models.TextField()
     description_ar = models.TextField()
-    how_to_play = models.TextField()
+    how_to_play_en = models.TextField()
+    how_to_play_ar = models.TextField()
     
     time = models.SmallIntegerField()
     image = models.ImageField(upload_to='exercises/images/', blank=True, null=True)
