@@ -133,7 +133,6 @@ class CommentViewSet(viewsets.ModelViewSet):
             "product_id": self.kwargs["product_pk"],
         }
 
-
 class ProfileView(
     CreateModelMixin, UpdateModelMixin, RetrieveModelMixin, GenericViewSet
 ):

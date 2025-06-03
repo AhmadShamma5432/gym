@@ -99,6 +99,7 @@ class ProductSerializer(serializers.ModelSerializer):
     colors = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
     product_rate = serializers.SerializerMethodField()
+    ratings = RatingSerializer(many=True,read_only=True)
     main_category = MainCategorySerializer(read_only=True)
     sub_category = SubCategorySerializer(read_only=True)
     brand = BrandSerializer(read_only=True)
@@ -125,6 +126,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "how_should_i_take_it_ar",
             
             "rating_counts",
+            "ratings",
             "product_rate",
             "sizes",
             "colors",

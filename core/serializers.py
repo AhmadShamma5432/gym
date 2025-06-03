@@ -41,19 +41,19 @@ class UserCreateSerializer(BaseUserCreateSerializer):
     # first_name = serializers.CharField(required=True)
     class Meta(BaseUserCreateSerializer.Meta):
         #the id is auto_field so it doesn't shown in the view of creation
-        fields = ['id','phone','password']
+        fields = ['id','phone','username','password']
 
 class UserSerializer(BaseUserSerializer):
     class Meta(BaseUserSerializer.Meta):
-        fields = ['id','phone']
+        fields = ['id','phone','username']
 
 class UserRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id','phone']
+        fields = ['id','phone','username']
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['phone']
+        fields = ['phone','username']
 
