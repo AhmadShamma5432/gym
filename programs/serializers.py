@@ -106,7 +106,7 @@ class PlanSubscriptionSerializer(serializers.ModelSerializer):
 class PlanRequestSerializer(serializers.ModelSerializer):
     # Read-only nested representations
     sport = SportSerializer(read_only=True)
-    coach = UserSerializer(read_only=True)
+    owner = UserSerializer(read_only=True)
     user = UserSerializer(read_only=True)
 
     # Write-only IDs for input
@@ -116,7 +116,7 @@ class PlanRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanRequest
         fields = [
-            'id', 'user', 'coach', 'coach_id',
+            'id', 'user', 'owner', 'coach_id',
             'sport', 'sport_id', 'plan_type',
             'requested_at', 'is_completed'
         ]
@@ -149,6 +149,6 @@ class PlanRequestSerializer(serializers.ModelSerializer):
         return PlanRequest.objects.create(
             user=user,
             sport=sport,
-            coach=coach,
+            owner=coach,
             **validated_data
         )

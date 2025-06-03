@@ -20,7 +20,7 @@ class ExerciseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsCoachOrStaff]
 
     def get_queryset(self):
-        return Exercise.objects.select_related('coach')\
+        return Exercise.objects.select_related('owner')\
                                .prefetch_related('exercise_detail').filter(coach=self.request.user)
     
     def get_serializer_context(self):
