@@ -199,10 +199,10 @@ class Order(models.Model):
     city = models.CharField(max_length=255)
     area = models.CharField(max_length=255)
     street = models.CharField(max_length=255)
-    phone = models.CharField(max_length=30)
-    postal_Code = models.CharField(max_length=255)
+    phone = models.CharField(max_length=30,blank=True,null=True)
+    postal_Code = models.CharField(max_length=255,blank=True,null=True)
     total_products_price = models.DecimalField(max_digits=12, decimal_places=3)
-    invoice_id = models.BigIntegerField()
+    invoice_id = models.BigIntegerField(blank=True,null=True)
     operation_number = models.BigIntegerField(blank=True,null=True)
     guid = models.CharField(max_length=100,blank=True,null=True)
 

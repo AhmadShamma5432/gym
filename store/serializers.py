@@ -295,7 +295,7 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     user = UserSerializer(read_only=True)
     total_products_price = serializers.CharField(max_length=100)
-    phone = serializers.CharField(max_length=30)
+    phone = serializers.CharField(max_length=30,required=False)
     guid = serializers.CharField(max_length=50,required=False)
     invoice_id = serializers.IntegerField(required=False)
     operation_number = serializers.IntegerField(required=False)
