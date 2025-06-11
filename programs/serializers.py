@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from core.serializers import UserSerializer
 from core.models import User
-from .models import Exercise, Plan, ExerciseDetail,Sport,PlanSubscription,PlanRequest,Muscle,ExerciseMuscle
+from .models import Exercise, Plan, ExerciseDetail,Sport,PlanSubscription,PlanRequest,Muscle,ExerciseMuscle,MealDetail,FoodItem,NutritionPlan,CoachQuestion,UserAnswer
 from django.db import transaction
 
 class SportSerializer(serializers.ModelSerializer):
@@ -101,7 +101,7 @@ class PlanSerializer(serializers.ModelSerializer):
         model = Plan
         fields = [
             'id','name_en', 'name_ar','advice_en', 'advice_ar','description_en', 'description_ar','plan_goal_en', 'plan_goal_ar','weeks', 
-            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','details','owner','user_id'
+            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','details','owner','user_id','plan_pay_level'
         ]
 
     def get_sport_en(self, obj):
@@ -143,7 +143,24 @@ class PlanSubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PlanSubscription
         fields = ['plan','user','plan_id','user_id']
+class CoachQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CoachQuestion
+        fields = ['id', 'question_en', 'question_ar', 'plan_type']
 
+class UserAnswerSerializer(serializers.ModelSerializer):
+    question = serializers.SerializerMethodField()
+    class Meta:
+        model = UserAnswer
+        fields = ['question', 'answer']
+    
+    def get_question(self,obj):
+        print(obj.question)
+        return {
+            "id": obj.question.id,
+            "question_en": obj.question.question_en,
+            "question_ar": obj.question.question_ar
+        }
 
 class PlanRequestSerializer(serializers.ModelSerializer):
     # Read-only nested representations
@@ -151,46 +168,131 @@ class PlanRequestSerializer(serializers.ModelSerializer):
     owner = UserSerializer(read_only=True)
     user = UserSerializer(read_only=True)
 
-    # Write-only IDs for input
+    # Write-only IDs
     sport_id = serializers.IntegerField(write_only=True)
     coach_id = serializers.IntegerField(write_only=True)
+    answers = UserAnswerSerializer(many=True)
 
     class Meta:
         model = PlanRequest
         fields = [
             'id', 'user', 'owner', 'coach_id',
             'sport', 'sport_id', 'plan_type',
-            'requested_at', 'is_completed'
+            'requested_at', 'is_completed', 'answers'
         ]
-        read_only_fields = ['user', 'requested_at']
+        read_only_fields = ['user', 'requested_at', 'owner']
 
     def create(self, validated_data):
-        user = self.context['user']
-        if user == None:
-            raise serializers.ValidationError("you can't make a request if you are not authenticated")
-        sport_id = validated_data.pop('sport_id', None)
-        coach_id = validated_data.pop('coach_id', None)
+        with transaction.atomic():
+            user = self.context['user']
+            if not user.is_authenticated:
+                raise serializers.ValidationError("You must be logged in to make a plan request.")
 
-        # Validate presence of IDs
-        if sport_id is None:
-            raise serializers.ValidationError({"sport_id": "This field is required."})
-        if coach_id is None:
-            raise serializers.ValidationError({"coach_id": "This field is required."})
+            sport_id = validated_data.pop('sport_id')
+            coach_id = validated_data.pop('coach_id')
+            answers_data = validated_data.pop('answers')
 
-        # Fetch related objects
-        try:
-            sport = Sport.objects.get(id=sport_id)
-        except Sport.DoesNotExist:
-            raise serializers.ValidationError({"sport_id": "Sport does not exist."})
+            # Fetch related objects
+            try:
+                sport = Sport.objects.get(id=sport_id)
+            except Sport.DoesNotExist:
+                raise serializers.ValidationError({"sport_id": "Invalid sport ID."})
 
-        try:
-            coach = User.objects.get(id=coach_id)
-        except User.DoesNotExist:
-            raise serializers.ValidationError({"coach_id": "Coach does not exist."})
+            try:
+                coach = User.objects.get(id=coach_id)
+            except User.DoesNotExist:
+                raise serializers.ValidationError({"coach_id": "Coach does not exist."})
 
-        return PlanRequest.objects.create(
-            user=user,
-            sport=sport,
-            owner=coach,
-            **validated_data
-        )
+            plan_request = PlanRequest.objects.create(
+                user=user,
+                sport=sport,
+                coach=coach,
+                **validated_data
+            )
+
+            user_answers = [
+                UserAnswer(
+                    plan_request=plan_request,
+                    question=answer['question'],
+                    answer=answer['answer']
+                ) for answer in answers_data
+            ]
+
+            UserAnswer.objects.bulk_create(user_answers)
+
+            return plan_request
+
+class FoodItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FoodItem
+        fields = [
+            'id', 'name_en', 'name_ar', 'quantity'
+        ]
+
+class MealDetailSerializer(serializers.ModelSerializer):
+    food_items = FoodItemSerializer(many=True)
+
+    class Meta:
+        model = MealDetail
+        fields = [
+            'id', 'week', 'day', 'meal_number',
+            'meal_name_en', 'meal_name_ar',
+            'calories', 'protein', 'carbs', 'fats',
+            'food_items'
+        ]
+
+class NutritionPlanSerializer(serializers.ModelSerializer):
+    meals = MealDetailSerializer(many=True)
+    owner = UserSerializer(read_only=True)  # assuming UserSerializer is defined
+
+    class Meta:
+        model = NutritionPlan
+        fields = [
+            'id', 'name_en', 'name_ar', 'target',
+            'description_en', 'description_ar',
+            'advice_en', 'advice_ar','plan_pay_level',
+            'weeks', 'image', 'owner', 'meals'
+        ]
+
+    def validate(self, data):
+        meals_data = data.get('meals')
+        if not meals_data:
+            raise serializers.ValidationError("At least one meal must be provided.")
+        return data
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            meals_array = []
+            food_items_array = []
+            final_array = []
+
+            owner = self.context['owner']
+            meals_data = validated_data.pop('meals')
+            plan = NutritionPlan.objects.create(owner=owner, **validated_data)
+
+
+            for meal in meals_data:
+                food_items = meal.pop('food_items')
+                meals_array.append(MealDetail(plan=plan,**meal))
+                food_items_array.append(food_items)
+
+            MealDetail.objects.bulk_create(meals_array)
+            saved_meals = MealDetail.objects.filter(plan_id=plan.id)
+            print(saved_meals)
+            cnt = 0 ; 
+            for saved_meal in saved_meals:
+                for food_item in food_items_array[cnt]: 
+                    print(saved_meal.id)
+                    final_array.append(FoodItem(meal_id=saved_meal.id,**food_item))
+                cnt += 1 ; 
+
+            FoodItem.objects.bulk_create(final_array)
+
+            
+            return plan
+
+    def update(self, instance, validated_data):
+        with transaction.atomic():
+            instance.delete()
+            # instance.owner = self.context['owner_id']
+            return self.create(validated_data)

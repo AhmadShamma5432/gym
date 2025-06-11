@@ -1,4 +1,5 @@
 from django.contrib import admin
+import nested_admin
 from .models import (
     Muscle,
     Sport,
@@ -7,6 +8,9 @@ from .models import (
     Plan,
     ExerciseDetail,
     PlanSubscription,
+    NutritionPlan,
+    MealDetail,
+    FoodItem
 )
 
 # --------------------------
@@ -65,3 +69,21 @@ class PlanAdmin(admin.ModelAdmin):
     search_fields = ('name_en', 'name_ar', 'owner__username', 'sport__name_en')
     list_filter = ('sport', 'owner')
     inlines = [ExerciseDetailInline]
+
+class FoodItemInline(nested_admin.NestedTabularInline):
+    model = FoodItem
+    extra = 1
+    fields = ['name_en', 'name_ar', 'quantity']
+
+class MealDetailInline(nested_admin.NestedTabularInline):
+    model = MealDetail
+    extra = 1
+    fields = ['week', 'day', 'meal_number', 'meal_name_en', 'meal_name_ar', 'calories', 'protein', 'carbs', 'fats']
+    inlines = [FoodItemInline]
+
+@admin.register(NutritionPlan)
+class NutritionPlanAdmin(nested_admin.NestedModelAdmin):
+    inlines = [MealDetailInline]
+    list_display = ['name_en', 'target', 'weeks', 'owner']
+    search_fields = ['name_en', 'name_ar']
+    list_filter = ['owner']

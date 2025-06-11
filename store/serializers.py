@@ -15,6 +15,7 @@ from .models import (
 )
 from django.db import transaction
 from core.serializers import UserSerializer
+from payment.utils import create_invoice,initiate_payment,generate_random_number
 
 
 class MainCategorySerializer(serializers.ModelSerializer):
@@ -294,6 +295,11 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     user = UserSerializer(read_only=True)
     total_products_price = serializers.CharField(max_length=100)
+    phone = serializers.CharField(max_length=30)
+    guid = serializers.CharField(max_length=50,required=False)
+    invoice_id = serializers.IntegerField(required=False)
+    operation_number = serializers.IntegerField(required=False)
+    
 
     class Meta:
         model = Order
@@ -309,6 +315,10 @@ class OrderSerializer(serializers.ModelSerializer):
             "total_products_price",
             "user",
             "items",
+            'invoice_id',
+            'phone',
+            'operation_number',
+            'guid'
         ]
 
     def create(self, validated_data):
@@ -316,8 +326,16 @@ class OrderSerializer(serializers.ModelSerializer):
             user_id = self.context["user_id"] 
             items_data = validated_data.pop("items")
 
-            order = Order.objects.create(user_id=user_id, **validated_data)
+            order = Order.objects.create(invoice_id=1,user_id=user_id, **validated_data)
 
+            returned_invoice = create_invoice(int(order.total_products_price),order.id + 20000)
+            order.invoice_id = order.id + 20000
+            order.guid = str(generate_random_number())
+            initiate_payment_var = initiate_payment(order.phone,order.invoice_id,order.guid)
+            order.operation_number = initiate_payment_var['response']['OperationNumber']
+            order.save()
+            print(initiate_payment_var)
+            # print(returned_invoice)
             order_items = []
             for item_data in items_data:
                 product_id = item_data.pop("product_id")

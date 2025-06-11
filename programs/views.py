@@ -1,5 +1,7 @@
 # views.py
-from rest_framework import viewsets
+from rest_framework.response import Response
+from rest_framework import viewsets,status
+from rest_framework.mixins import *
 from django.db.models import Q
 from rest_framework.permissions import IsAuthenticated
 from .models import *
@@ -51,9 +53,7 @@ class PlanSubscriptionView(viewsets.ModelViewSet):
     queryset = PlanSubscription.objects.select_related('plan','user').all()
     serializer_class = PlanSubscriptionSerializer
 
-
-
-class PlanRequestView(viewsets.ModelViewSet):
+class PlanRequestView(CreateModelMixin,ListModelMixin,RetrieveModelMixin,DestroyModelMixin,viewsets.GenericViewSet):
     serializer_class = PlanRequestSerializer
 
     def get_queryset(self):
@@ -61,6 +61,33 @@ class PlanRequestView(viewsets.ModelViewSet):
     
     def get_serializer_context(self):
         return {"user": self.request.user}
+class CoachQuestionsView(viewsets.ModelViewSet):
+    serializer_class = CoachQuestionSerializer
+
+    def get_queryset(self):
+        return CoachQuestion.objects.all()
+    
+    def get_serializer_context(self):
+        return { "user": self.request.user }
+
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+
+        if isinstance(data,list):
+            serializer = self.get_serializer(data=data,many=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(
+                {"detail": "Expected a list of items."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    def perform_create(self, serializer):
+        return serializer.save(coach=self.request.user)
+
 
 class SportView(viewsets.ModelViewSet):
     queryset = Sport.objects.all()
@@ -70,3 +97,17 @@ class MuscleView(viewsets.ModelViewSet):
     queryset = Muscle.objects.all()
     serializer_class = MuscleSerializer
 
+
+class NutritionPlanViewSet(viewsets.ModelViewSet):
+    serializer_class = NutritionPlanSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Optimize queries with prefetch and select
+        return NutritionPlan.objects.prefetch_related(
+            'meals', 
+            'meals__food_items'
+        ).select_related('owner').filter(owner=self.request.user)
+
+    def get_serializer_context(self):
+        return {"owner": self.request.user}
