@@ -340,7 +340,7 @@ class OrderSerializer(serializers.ModelSerializer):
             try: 
                 order.operation_number = initiate_payment_var['response']['OperationNumber']
             except:
-                raise serializers.ValidationError('response error ')
+                raise serializers.ValidationError(initiate_payment_var)
             order.save()
             # print(returned_invoice)
             order_items = []
