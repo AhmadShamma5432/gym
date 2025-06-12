@@ -29,6 +29,8 @@ def generate_signature(data_dict):
     signs using RSA private key, returns Base64 signature
     """
     private_key_pem = os.getenv("PRIVATE_KEY")
+    if private_key_pem == None:
+        raise ValueError("where is private_key???")
     private_key = RSA.import_key(private_key_pem)
     h = SHA256.new(data_dict.encode())
     signature = pkcs1_15.new(private_key).sign(h)
