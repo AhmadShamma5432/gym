@@ -3,7 +3,7 @@ from core.serializers import UserSerializer
 from core.models import User
 from .models import Exercise, Plan, ExerciseDetail,Sport,PlanSubscription,PlanRequest,Muscle,ExerciseMuscle,MealDetail,FoodItem,NutritionPlan,CoachQuestion,UserAnswer
 from django.db import transaction
-
+import json
 class SportSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -90,7 +90,8 @@ class ExerciseDetailSerializer(serializers.ModelSerializer):
         ]
 
 class PlanSerializer(serializers.ModelSerializer):
-    details = ExerciseDetailSerializer(many=True)
+    plan_details = serializers.SerializerMethodField(read_only=True)
+    details = ExerciseDetailSerializer(write_only=True,many=True)
     sport_id = serializers.IntegerField(write_only=True)
     sport_en = serializers.SerializerMethodField(read_only=True)
     sport_ar = serializers.SerializerMethodField(read_only=True)
@@ -101,14 +102,58 @@ class PlanSerializer(serializers.ModelSerializer):
         model = Plan
         fields = [
             'id','name_en', 'name_ar','advice_en', 'advice_ar','description_en', 'description_ar','plan_goal_en', 'plan_goal_ar','weeks', 
-            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','details','owner','user_id','plan_pay_level'
+            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','details','owner','user_id','plan_pay_level','plan_details'
         ]
 
     def get_sport_en(self, obj):
         return obj.sport.name_en
     def get_sport_ar(self, obj):
         return obj.sport.name_ar
-    
+    def get_image(self, obj):
+        request = self.context.get("request")
+        try: 
+            return request.build_absolute_uri(obj.image.url) 
+        except: return ""
+    def get_plan_details(self, obj):
+        plan_data = []
+
+        # Group by week
+        week_dict = {}
+
+        for o in obj.details.all():
+            week_num = o.week
+            day_num = o.day
+
+            if week_num not in week_dict:
+                week_dict[week_num] = {}
+
+            # Group by day inside week
+            if day_num not in week_dict[week_num]:
+                week_dict[week_num][day_num] = []
+
+            week_dict[week_num][day_num].append({
+                "sets": o.sets,
+                "reps_en": o.reps_en,
+                "reps_ar": o.reps_ar,
+                "exercise_id": o.exercise_id
+            })
+
+        # Convert dict to list format
+        for week_num in sorted(week_dict.keys()):
+            week_obj = {
+                "week_number": week_num,
+                "days": []
+            }
+            for day_num in sorted(week_dict[week_num].keys()):
+                day_obj = {
+                    "day_number": day_num,
+                    "exercises": week_dict[week_num][day_num]
+                }
+                week_obj["days"].append(day_obj)
+            plan_data.append(week_obj)
+
+        return plan_data
+
     def create(self, validated_data):
         with transaction.atomic(): 
             owner = self.context['user']

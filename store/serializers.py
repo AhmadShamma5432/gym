@@ -332,6 +332,7 @@ class OrderSerializer(serializers.ModelSerializer):
             order.invoice_id = order.id + 20000
             order.guid = str(generate_random_number())
             initiate_payment_var = initiate_payment(order.phone,order.invoice_id,order.guid)
+            print(initiate_payment_var)
             order.operation_number = initiate_payment_var['response']['OperationNumber']
             order.save()
             print(initiate_payment_var)

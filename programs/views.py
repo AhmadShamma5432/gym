@@ -46,8 +46,9 @@ class PlanViewSet(viewsets.ModelViewSet):
         try: plan_id = self.kwargs['pk']
         except: plan_id = None
         return {'user': self.request.user,
-                'plan_id': plan_id
-                }
+                'plan_id': plan_id,
+                'request': self.request
+               }
 
 class PlanSubscriptionView(viewsets.ModelViewSet):
     queryset = PlanSubscription.objects.select_related('plan','user').all()
