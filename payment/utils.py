@@ -25,7 +25,7 @@ def generate_signature(data_dict):
     Takes a dictionary, converts to compact JSON,
     signs using RSA private key, returns Base64 signature
     """
-    print("generate_signature called")
+    print("DEBUG: generate_signature called", flush=True)
     private_key_pem = os.getenv("PRIVATE_KEY")
     if private_key_pem == None:
         raise ValueError("where is private_key???")
