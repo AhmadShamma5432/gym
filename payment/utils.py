@@ -1,8 +1,5 @@
 import json
 import base64
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.exceptions import InvalidSignature
 import requests
 import base64
 import json
@@ -13,10 +10,10 @@ from Crypto.Signature import pkcs1_15
 from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA
 import random
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 # ==================== UTILITY FUNCTIONS ==================== #
-
+import os
+print("Current working directory:", os.getcwd())
 # Load environment variables from .env
 load_dotenv()
 
