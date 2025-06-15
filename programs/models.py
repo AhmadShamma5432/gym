@@ -13,6 +13,13 @@ PLAN_PAY_LEVEL_CHOICES = [
     ('platinum','platinum')
 ]
 
+EXERCISE_TYPE_CHOICES = [
+        ('warm_up', 'warm_up'),
+        ('main_exercise', 'main_exercise'),
+        ('stretching', 'stretching'),
+    ]
+
+
 class Muscle(models.Model):
     name_en = models.CharField(max_length=100, unique=True)
     name_ar = models.CharField(max_length=100, unique=True)
@@ -98,6 +105,7 @@ class ExerciseDetail(models.Model):
     sets = models.PositiveSmallIntegerField()
     reps_en = models.CharField(max_length=255)
     reps_ar = models.CharField(max_length=255)
+    exercise_type = models.CharField(choices=EXERCISE_TYPE_CHOICES,default="main_exercise")
     rest_between_sets = models.PositiveSmallIntegerField()
 
 class PlanSubscription(models.Model):
