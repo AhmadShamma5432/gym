@@ -83,7 +83,7 @@ class ExerciseDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ExerciseDetail
-        fields = ['id', 'sets', 'reps_en', 'reps_ar','exercise','exercise_id', 'rest_between_sets']
+        fields = ['id', 'sets', 'reps_en', 'reps_ar','exercise','exercise_id','exercise_type', 'rest_between_sets']
 
 class DaySerializer(serializers.Serializer):
     day_number = serializers.IntegerField(source='number')
@@ -146,7 +146,6 @@ class PlanSerializer(serializers.ModelSerializer):
                 week_name = week_data["name"]
 
                 week = Week.objects.create(plan=plan, number=week_number, name=week_name)
-                print(week_data)
                 for day_data in week_data.get("plan_days", []):
                     day_number = day_data["number"]
                     day_name = day_data["name"]
@@ -166,7 +165,8 @@ class PlanSerializer(serializers.ModelSerializer):
                             sets=exercise_data["sets"],
                             reps_en=exercise_data["reps_en"],
                             reps_ar=exercise_data["reps_ar"],
-                            rest_between_sets=exercise_data["rest_between_sets"]
+                            rest_between_sets=exercise_data["rest_between_sets"],
+                            exercise_type=exercise_data["exercise_type"]
                         )
 
             return plan
