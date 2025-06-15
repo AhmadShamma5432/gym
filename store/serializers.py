@@ -327,21 +327,14 @@ class OrderSerializer(serializers.ModelSerializer):
             items_data = validated_data.pop("items")
 
             order = Order.objects.create(invoice_id=1,user_id=user_id, **validated_data)
-            try: 
-                returned_invoice = create_invoice(int(order.total_products_price),order.id + 20000)
-            except: 
-                raise serializers.ValidationError("createInvoiceError")
-            try: 
-                order.invoice_id = order.id + 20000
-                order.guid = str(generate_random_number())
-                initiate_payment_var = initiate_payment(order.phone,order.invoice_id,order.guid)
-            except: 
-                raise serializers.ValidationError("initiate error")
-            try: 
-                order.operation_number = initiate_payment_var['response']['OperationNumber']
-            except:
-                raise serializers.ValidationError(initiate_payment_var)
-            order.save()
+            # returned_invoice = create_invoice(int(order.total_products_price),order.id + 20000)
+            # print(returned_invoice)
+            # order.invoice_id = order.id + 20000
+            # order.guid = str(generate_random_number())
+            # initiate_payment_var = initiate_payment(order.phone,order.invoice_id,order.guid)
+            # print(initiate_payment_var)
+            # order.operation_number = initiate_payment_var['response']['OperationNumber']
+            # order.save()
             # print(returned_invoice)
             order_items = []
             for item_data in items_data:

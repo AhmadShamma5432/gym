@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from core.serializers import UserSerializer
 from core.models import User
-from .models import Exercise, Plan, ExerciseDetail,Sport,PlanSubscription,PlanRequest,Muscle,ExerciseMuscle,MealDetail,FoodItem,NutritionPlan,CoachQuestion,UserAnswer
+from .models import Exercise,Week,Day, Plan, ExerciseDetail,Sport,PlanSubscription,PlanRequest,Muscle,ExerciseMuscle,MealDetail,FoodItem,NutritionPlan,CoachQuestion,UserAnswer
 from django.db import transaction
 import json
 class SportSerializer(serializers.ModelSerializer):
@@ -77,21 +77,27 @@ class ExerciseSerializer(serializers.ModelSerializer):
 
             return instance
 
-
 class ExerciseDetailSerializer(serializers.ModelSerializer):
-    exercise = ExerciseSerializer(read_only=True)
     exercise_id = serializers.IntegerField(write_only=True)
+    exercise = ExerciseSerializer(read_only=True)
 
     class Meta:
         model = ExerciseDetail
-        fields = [
-            'id', 'exercise', 'week', 'day',
-            'sets', 'reps_en', 'reps_ar','exercise_id'
-        ]
+        fields = ['id', 'sets', 'reps_en', 'reps_ar','exercise','exercise_id', 'rest_between_sets']
+
+class DaySerializer(serializers.Serializer):
+    day_number = serializers.IntegerField(source='number')
+    day_name = serializers.CharField(source='name')
+    rest_between_exercises = serializers.IntegerField()
+    exercises = ExerciseDetailSerializer(many=True)
+
+class WeekSerializer(serializers.Serializer):
+    week_number = serializers.IntegerField(source='number')
+    week_name = serializers.CharField(source='name')
+    plan_days = DaySerializer(many=True)
 
 class PlanSerializer(serializers.ModelSerializer):
-    plan_details = serializers.SerializerMethodField(read_only=True)
-    details = ExerciseDetailSerializer(write_only=True,many=True)
+    plan_weeks = WeekSerializer(many=True)
     sport_id = serializers.IntegerField(write_only=True)
     sport_en = serializers.SerializerMethodField(read_only=True)
     sport_ar = serializers.SerializerMethodField(read_only=True)
@@ -102,7 +108,7 @@ class PlanSerializer(serializers.ModelSerializer):
         model = Plan
         fields = [
             'id','name_en', 'name_ar','advice_en', 'advice_ar','description_en', 'description_ar','plan_goal_en', 'plan_goal_ar','weeks', 
-            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','details','owner','user_id','plan_pay_level','plan_details'
+            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','plan_weeks','owner','user_id','plan_pay_level'
         ]
 
     def get_sport_en(self, obj):
@@ -114,63 +120,54 @@ class PlanSerializer(serializers.ModelSerializer):
         try: 
             return request.build_absolute_uri(obj.image.url) 
         except: return ""
-    def get_plan_details(self, obj):
-        plan_data = []
 
-        # Group by week
-        week_dict = {}
-
-        for o in obj.details.all():
-            week_num = o.week
-            day_num = o.day
-
-            if week_num not in week_dict:
-                week_dict[week_num] = {}
-
-            # Group by day inside week
-            if day_num not in week_dict[week_num]:
-                week_dict[week_num][day_num] = []
-
-            week_dict[week_num][day_num].append({
-                "sets": o.sets,
-                "reps_en": o.reps_en,
-                "reps_ar": o.reps_ar,
-                "exercise_id": o.exercise_id
-            })
-
-        # Convert dict to list format
-        for week_num in sorted(week_dict.keys()):
-            week_obj = {
-                "week_number": week_num,
-                "days": []
-            }
-            for day_num in sorted(week_dict[week_num].keys()):
-                day_obj = {
-                    "day_number": day_num,
-                    "exercises": week_dict[week_num][day_num]
-                }
-                week_obj["days"].append(day_obj)
-            plan_data.append(week_obj)
-
-        return plan_data
 
     def create(self, validated_data):
-        with transaction.atomic(): 
-            owner = self.context['user']
-            sport = validated_data.pop('sport_id')
-            try: 
-                user_id = validated_data.pop('user_id')
-            except: 
-                user_id = None
-            sport = Sport.objects.get(pk=sport)
-            details_data = validated_data.pop('details')
-            plan = Plan.objects.create(**validated_data,owner=owner,sport=sport)
+        with transaction.atomic():
+            owner = self.context['request'].user
+            sport_id = validated_data.pop('sport_id')
 
-            if( user_id ):
-                PlanSubscription.objects.create(plan_id=plan.id,user_id=user_id)
+            try:
+                sport = Sport.objects.get(pk=sport_id)
+            except Sport.DoesNotExist:
+                raise serializers.ValidationError({"sport_id": "Invalid sport ID."})
 
-            for detail_data in details_data:
-                ExerciseDetail.objects.create(plan=plan, **detail_data)
+            print(validated_data)
+
+            plan_details = validated_data.pop('plan_weeks')
+            plan = Plan.objects.create(owner=owner, sport=sport, **validated_data)
+
+            # Optional: handle user subscription
+            if user_id := validated_data.pop("user_id", None):
+                PlanSubscription.objects.create(plan_id=plan.id, user_id=user_id)
+
+            for week_data in plan_details:
+                week_number = week_data["number"]
+                week_name = week_data["name"]
+
+                week = Week.objects.create(plan=plan, number=week_number, name=week_name)
+                print(week_data)
+                for day_data in week_data.get("plan_days", []):
+                    day_number = day_data["number"]
+                    day_name = day_data["name"]
+                    rest_between_exercises = day_data["rest_between_exercises"]
+                    print(day_data)
+                    day = Day.objects.create(
+                        week=week,
+                        number=day_number,
+                        name=day_name,
+                        rest_between_exercises=rest_between_exercises
+                    )
+
+                    for exercise_data in day_data.get("exercises", []):
+                        ExerciseDetail.objects.create(
+                            day=day,
+                            exercise_id=exercise_data["exercise_id"],
+                            sets=exercise_data["sets"],
+                            reps_en=exercise_data["reps_en"],
+                            reps_ar=exercise_data["reps_ar"],
+                            rest_between_sets=exercise_data["rest_between_sets"]
+                        )
 
             return plan
     

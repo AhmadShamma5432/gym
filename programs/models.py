@@ -73,18 +73,32 @@ class Plan(models.Model):
     def __str__(self):
         return self.name_en
     
+class Week(models.Model):
+    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='plan_weeks')
+    number = models.PositiveSmallIntegerField()
+    name = models.CharField(max_length=255)
+
+    class Meta:
+        unique_together = ('plan', 'number')
+
+
+class Day(models.Model):
+    week = models.ForeignKey(Week, on_delete=models.CASCADE, related_name='plan_days')
+    number = models.PositiveSmallIntegerField()
+    name = models.CharField(max_length=255)
+    rest_between_exercises = models.PositiveSmallIntegerField()
+
+    class Meta:
+        unique_together = ('week', 'number')
+
+
 class ExerciseDetail(models.Model):
-    plan = models.ForeignKey(Plan, on_delete=models.CASCADE, related_name='details')
-    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='exercise_detail')
-    week = models.PositiveSmallIntegerField()
-    day = models.PositiveSmallIntegerField()
-    
+    day = models.ForeignKey(Day, on_delete=models.CASCADE, related_name='exercises',blank=True,null=True,default=None)
+    exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE)
     sets = models.PositiveSmallIntegerField()
     reps_en = models.CharField(max_length=255)
     reps_ar = models.CharField(max_length=255)
-
-    class Meta:
-        unique_together = ('plan', 'exercise', 'week', 'day')
+    rest_between_sets = models.PositiveSmallIntegerField()
 
 class PlanSubscription(models.Model):
     plan = models.ForeignKey(Plan,on_delete=models.CASCADE)
