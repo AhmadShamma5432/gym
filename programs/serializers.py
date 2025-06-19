@@ -108,7 +108,7 @@ class PlanSerializer(serializers.ModelSerializer):
         model = Plan
         fields = [
             'id','name_en', 'name_ar','advice_en', 'advice_ar','description_en', 'description_ar','plan_goal_en', 'plan_goal_ar','weeks', 
-            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','plan_weeks','owner','user_id','plan_pay_level'
+            'image', 'days', 'daily_time','kalories','sport_en','sport_ar','sport_id','plan_weeks','owner','user_id','plan_pay_level','price'
         ]
 
     def get_sport_en(self, obj):

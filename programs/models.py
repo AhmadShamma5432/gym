@@ -63,6 +63,9 @@ class Plan(models.Model):
     advice_ar = models.TextField(blank=True, null=True)
 
     plan_pay_level =  models.CharField(max_length=100,choices=PLAN_PAY_LEVEL_CHOICES)
+    price = models.DecimalField(
+        max_digits=10, decimal_places=2
+    )
 
     days = models.IntegerField()
     description_en = models.TextField()
